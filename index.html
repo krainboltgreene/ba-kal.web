@@ -126,7 +126,7 @@
       }
 
       function Application () {
-        const [results, setResults] = React.useState({});
+        const [{total_rows, rows, offset}, setResults] = React.useState({});
         const [query, setQuery] = React.useState(undefined)
 
         React.useEffect(function () {
@@ -143,10 +143,10 @@
               React.createElement(
                 "section",
                 {key: "search-information"},
-                `Searching for ${results.query}, we have found ${results.total_rows} results...`
+                `Searching for ${query}, we have found ${total_rows} results...`
               ),
               React.createElement(Search, {key: "search", query, setQuery}),
-              React.createElement(Results, {key: "results", ...results})
+              React.createElement(Results, {key: "results", total_rows, rows, offset})
             ]
           );
         };
