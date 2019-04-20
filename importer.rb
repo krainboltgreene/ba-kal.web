@@ -63,8 +63,12 @@ end.reduce({}) do |hash, (key, list)|
       next(hash) if word_node.text.nil?
       hash.merge(
         "word" => DECODE.call(word_node.text.strip),
-        "definition" => DECODE.call(extra.map(&:text).compact.map(&:strip).join(" ")),
-        "examples" => []
+        "definitions" => {
+          "unknown" => DECODE.call(extra.map(&:text).compact.map(&:strip).join(" "))
+        },
+        "examples" => [],
+        "etymologies" => [],
+        "note" => ""
       )
     end
   end)
