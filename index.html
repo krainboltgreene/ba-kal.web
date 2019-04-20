@@ -1,0 +1,178 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Ba Kom</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script>
+
+    </script>
+  </head>
+
+  <body>
+
+    <main>
+      <p class="p-1">
+        Booting up...
+      </p>
+    </main>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pouchdb/7.0.0/pouchdb.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pouchdb-quick-search@1.3.0/dist/pouchdb.quick-search.min.js" integrity="sha256-O2Fg8+71Ghtl5GSB/Z4ielEWXj46b163E3fcdFsc8lE=" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
+
+    <script type="text/javascript">
+      const DATABASE = new PouchDB("local");
+
+      DATABASE.changes({
+        since: "now"
+      }).on("change", function (change) {
+        console.warn({change});
+      });
+
+      DATABASE.sync("http://0.0.0.0:5984/dictionary");
+    </script>
+
+    <script type="text/javascript">
+      function Result ({id, score}) {
+        const [documentResult, setDocumentResult] = React.useState({loaded: false});
+        const [rootResult, setRootResult] = React.useState({});
+
+        React.useEffect(function () {
+          DATABASE.get(id).then((result) => {
+            setDocumentResult({loaded: new Date(), ...result})
+          });
+        }, [documentResult]);
+
+        React.useEffect(function () {
+          DATABASE.search({query, fields: ["word"]}).then(setRootResult);
+        }, [rootResults])
+
+        if (data.loaded) {
+          return React.createElement(
+            "section",
+            {className: "list-group-item"},
+            [
+              React.createElement(
+                "header",
+                {className: "d-flex w-100 justify-content-between"},
+                React.createElement(
+                  "h5",
+                  {className: "mb-1"},
+                  data.word
+                )
+              ),
+              React.createElement(
+                "p",
+                {className: "mb-1"},
+                data.definition
+              )
+            ]
+          );
+        }
+
+        return React.createElement(
+          "section",
+          {className: "list-group-item"},
+          React.createElement(
+            "p",
+            {className: "mb-1"},
+            "Loading..."
+          )
+        );
+      };
+
+      function Results ({rows}) {
+        return React.createElement(
+          "section",
+          {key: "row-list", className: "list-group"},
+          rows.map(({id, score}) => React.createElement(Result, {key: id, id, score}))
+        );
+      };
+
+      function Search ({setQuery, query}) {
+        return React.createElement(
+          "form",
+          {key: "search-form", className: "p-1"},
+          React.createElement(
+            "section",
+            {className: "form-row"},
+            React.createElement(
+              "section",
+              {className: "col input-group"},
+              [
+                React.createElement(
+                  "section",
+                  {key: "search-icon", className: "input-group-prepend"},
+                  React.createElement(
+                    "span",
+                    {className: "input-group-text"},
+                    "Search"
+                  )
+                ),
+                React.createElement(
+                  "input",
+                  {key: "search-input", className: "form-control form-control-lg", type: "text", onChange: (event) => setQuery(event.target.value), value: query}
+                )
+              ]
+            )
+          )
+        )
+      }
+
+      function Application () {
+        const [results, setResults] = React.useState({});
+        const [query, setQuery] = React.useState(undefined)
+
+        React.useEffect(function () {
+          if (query && query.length > 1) {
+            DATABASE.search({query, fields: ["definition"]}).then(setResults);
+          }
+        }, [query]);
+
+        if (rows) {
+          return React.createElement(
+            React.Fragment,
+            {},
+            [
+              React.createElement(
+                "section",
+                {key: "search-information"},
+                `Searching for ${results.query}, we have found ${results.total_rows} results...`
+              ),
+              React.createElement(Search, {key: "search", query, setQuery}),
+              React.createElement(Results, {key: "results", ...results})
+            ]
+          );
+        };
+
+        if (query && query.length > 1) {
+          return React.createElement(
+            React.Fragment,
+            {},
+            [
+              React.createElement(Search, {key: "search", query, setQuery}),
+              React.createElement("p", {key: "loading-message", className: "p-1"}, "Loading...")
+            ]
+          );
+        };
+
+        return React.createElement(
+          React.Fragment,
+          {},
+          [
+            React.createElement(Search, {key: "search", query, setQuery}),,
+            React.createElement("p", {key: "waiting-message", className: "p-1"}, "Waiting for search.")
+          ]
+        );
+      };
+
+      ReactDOM.render(React.createElement(Application, {}), document.querySelector("main"))
+    </script>
+  </body>
+</html>
