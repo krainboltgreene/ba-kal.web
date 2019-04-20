@@ -70,7 +70,7 @@ end.reduce([]) do |previous, (group, records)|
 end.flatten
 
 DATABASE.each do |record|
-  url = URI("http://0.0.0.0:5984/dictionary")
+  url = URI("http://35.224.124.140:5984/dictionary")
 
   http = Net::HTTP.new(url.host, url.port)
 
