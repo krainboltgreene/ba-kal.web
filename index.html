@@ -25,6 +25,8 @@
     <script src="https://cdn.jsdelivr.net/npm/pouchdb-quick-search@1.3.0/dist/pouchdb.quick-search.min.js" integrity="sha256-O2Fg8+71Ghtl5GSB/Z4ielEWXj46b163E3fcdFsc8lE=" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"></script>
 
     <script type="text/javascript">
       const DATABASE = new PouchDB("local");
@@ -39,52 +41,114 @@
     </script>
 
     <script type="text/javascript">
+      function ResultHeader ({word, documentLoaded}) {
+        return React.createElement(
+          "header",
+          {className: "d-flex w-100 justify-content-between"},
+          [
+            React.createElement(
+              "h5",
+              {key: "result-header-word", className: "mb-1"},
+              word
+            ),
+            React.createElement(
+              "small",
+              {key: "result-header-loaded", className: "text-muted"},
+              `Last fetched ${moment(documentLoaded).fromNow()}`
+            )
+          ]
+        )
+      }
+
+      function ResultFooter ({id, score}) {
+        return React.createElement(
+          "footer",
+          {className: "d-flex w-100 justify-content-between"},
+          [
+            React.createElement(
+              "a",
+              {key: "result-footer-edit", className: "text-muted"},
+              "edit"
+            ),
+            React.createElement(
+              "small",
+              {key: "result-footer-score", className: "text-muted"},
+              score
+            )
+          ]
+        )
+      }
+
+      function ResultRoot ({rootLoaded, total_rows, rows}) {
+        if (rootLoaded) {
+          return React.createElement(
+            "section",
+            {},
+            rows.map(function ({id, highlighting: {word}}) {
+              return React.createElement("li", {key: `result-root-${id}`, className: "badge badge-pill badge-light", dangerouslySetInnerHTML: {__html: word}})
+            })
+          )
+        };
+
+        return null;
+      }
+
       function Result ({id, score}) {
-        const [{word, definition}, setDocumentResult] = React.useState({loaded: false});
+        const [documentLoaded, setDocumentLoaded] = React.useState(false);
+        const [rootLoaded, setRootLoaded] = React.useState(false);
+        const [{word, definitions}, setDocumentResult] = React.useState({});
         const [rootResults, setRootResults] = React.useState({});
 
         React.useEffect(function () {
-          DATABASE.get(id).then((result) => {
-            setDocumentResult({loaded: new Date(), ...result})
-          });
-        }, [documentResult]);
+          DATABASE
+            .get(id)
+            .then(setDocumentResult)
+            .then(() => setDocumentLoaded(new Date()));
+        }, [id, score]);
 
         React.useEffect(function () {
-          DATABASE.search({query: word, fields: ["word"]}).then(setRootResult);
-        }, [word, rootResults])
+          if (word) {
+            Promise.all(
+              word
+                .split(" / ")
+                .flatMap((subsection) => subsection.split(" "))
+                .map((subword) => DATABASE.search({query: subword, fields: ["word"], highlighting: true, highlighting_pre: "<strong class=\"text-info\">"}))
+            )
+              .then(
+                (results) =>
+                  results.reduce(
+                    (accumulation, result) =>
+                      ({total_rows: accumulation.total_rows + result.total_rows, rows: [...accumulation.rows, ...result.rows]})
+                  )
+              )
+              .then((results) => ({...results, rows: R.uniqBy(({id}) => id, results.rows)}))
+              .then(setRootResults)
+              .then(() => setRootLoaded(new Date()));
+          }
 
-        if (data.loaded) {
+        }, [documentLoaded, word]);
+
+        if (documentLoaded) {
           return React.createElement(
             "section",
             {className: "list-group-item"},
             [
-              React.createElement(
-                "header",
-                {className: "d-flex w-100 justify-content-between"},
-                React.createElement(
-                  "h5",
-                  {className: "mb-1"},
-                  word
+              React.createElement(ResultHeader, {key: "result-header", word, documentLoaded})
+              ,
+              ...Object.entries(definitions).map(function ([key, value]) {
+                return React.createElement(
+                  "p",
+                  {key: `result-definition-${key}`, className: "mb-1"},
+                  `[${key}] ${value}`
                 )
-              ),
-              React.createElement(
-                "p",
-                {className: "mb-1"},
-                definition
-              )
+              }),
+              React.createElement(ResultRoot, {key: "result-root", rootLoaded, ...rootResults}),
+              React.createElement(ResultFooter, {key: "result-footer", id, score}),
             ]
           );
         }
 
-        return React.createElement(
-          "section",
-          {className: "list-group-item"},
-          React.createElement(
-            "p",
-            {className: "mb-1"},
-            "Loading..."
-          )
-        );
+        return null;
       };
 
       function Results ({rows}) {
@@ -130,8 +194,22 @@
         const [query, setQuery] = React.useState(undefined)
 
         React.useEffect(function () {
-          if (query && query.length > 1) {
-            DATABASE.search({query, fields: ["definition"]}).then(setResults);
+          if (query && query.length > 2) {
+            DATABASE
+              .search({
+                query,
+                fields: [
+                  "definitions.unknown",
+                  "definitions.n",
+                  "definitions.vt",
+                  "definitions.vo",
+                  "definitions.vs",
+                  "definitions.vi",
+                ]
+              })
+              .then(setResults);
+          } else {
+            setResults({})
           }
         }, [query]);
 
@@ -142,7 +220,7 @@
             [
               React.createElement(
                 "section",
-                {key: "search-information"},
+                {key: "search-information", className: "p-1"},
                 `Searching for ${query}, we have found ${total_rows} results...`
               ),
               React.createElement(Search, {key: "search", query, setQuery}),
@@ -151,7 +229,7 @@
           );
         };
 
-        if (query && query.length > 1) {
+        if (query && query.length > 2) {
           return React.createElement(
             React.Fragment,
             {},
