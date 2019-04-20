@@ -40,6 +40,7 @@ def flat_hash(list, cursor_check)
   end.first
 end
 
+puts "Reading from raw file..."
 DATALAKE = File.
   read(File.join(".", "data", "Bukkalbakom.html")).
   gsub(Regexp.new(%(<hr style="page-break-before:always;display:none;">)), "").
@@ -69,7 +70,10 @@ end.reduce([]) do |previous, (group, records)|
   end]
 end.flatten
 
+puts "Importing into dictionary"
+
 DATABASE.each do |record|
+  puts "Writing to dictionary..."
   url = URI("http://35.224.124.140:5984/dictionary")
 
   http = Net::HTTP.new(url.host, url.port)
