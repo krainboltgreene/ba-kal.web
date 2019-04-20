@@ -78,18 +78,21 @@ end.reduce([]) do |previous, (group, records)|
   end]
 end.flatten
 
-puts "Importing into dictionary"
+url = URI("http://35.224.124.140:5984/dictionary")
+http = Net::HTTP.new(url.host, url.port)
 
+puts "Creating database..."
+request = Net::HTTP::Put.new(url)
+request["accept"] = "application/json"
+request["content-type"] = "application/json"
+puts http.request(request)
+
+puts "Importing into dictionary..."
 DATABASE.each do |record|
   puts "Writing to dictionary..."
-  url = URI("http://35.224.124.140:5984/dictionary")
-
-  http = Net::HTTP.new(url.host, url.port)
-
   request = Net::HTTP::Post.new(url)
   request["accept"] = "application/json"
   request["content-type"] = "application/json"
   request.body = record.to_json
-
-  http.request(request)
+  puts http.request(request)
 end
