@@ -40,8 +40,8 @@
 
     <script type="text/javascript">
       function Result ({id, score}) {
-        const [documentResult, setDocumentResult] = React.useState({loaded: false});
-        const [rootResult, setRootResult] = React.useState({});
+        const [{word, definition}, setDocumentResult] = React.useState({loaded: false});
+        const [rootResults, setRootResults] = React.useState({});
 
         React.useEffect(function () {
           DATABASE.get(id).then((result) => {
@@ -50,8 +50,8 @@
         }, [documentResult]);
 
         React.useEffect(function () {
-          DATABASE.search({query, fields: ["word"]}).then(setRootResult);
-        }, [rootResults])
+          DATABASE.search({query: word, fields: ["word"]}).then(setRootResult);
+        }, [word, rootResults])
 
         if (data.loaded) {
           return React.createElement(
@@ -64,13 +64,13 @@
                 React.createElement(
                   "h5",
                   {className: "mb-1"},
-                  data.word
+                  word
                 )
               ),
               React.createElement(
                 "p",
                 {className: "mb-1"},
-                data.definition
+                definition
               )
             ]
           );
