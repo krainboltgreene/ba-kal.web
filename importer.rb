@@ -61,7 +61,11 @@ end.reduce({}) do |hash, (key, list)|
   hash.merge(key => list.map(&:nodes).map do |entries|
     entries.map(&:nodes).reduce({}) do |hash, (word_node, *extra)|
       next(hash) if word_node.text.nil?
-      hash.merge("word" => DECODE.call(word_node.text.strip), "definition" => DECODE.call(extra.map(&:text).compact.map(&:strip).join(" ")))
+      hash.merge(
+        "word" => DECODE.call(word_node.text.strip),
+        "definition" => DECODE.call(extra.map(&:text).compact.map(&:strip).join(" ")),
+        "examples" => []
+      )
     end
   end)
 end.reduce([]) do |previous, (group, records)|
