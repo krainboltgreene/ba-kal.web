@@ -12,10 +12,10 @@
 
   <body>
 
-    <main>
-      <p class="p-1">
+    <main class="container-fluid">
+      <section class="alert alert-light mb-0">
         Booting up...
-      </p>
+      </section>
     </main>
 
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
@@ -31,13 +31,7 @@
     <script type="text/javascript">
       const DATABASE = new PouchDB("local");
 
-      DATABASE.changes({
-        since: "now"
-      }).on("change", function (change) {
-        console.warn({change});
-      });
-
-      DATABASE.sync("http://35.224.124.140:5984/dictionary");
+      const REPLICATION = DATABASE.replicate.from("http://35.224.124.140:5984/dictionary", {live: true, retry: true, heartbeat: true});
     </script>
 
     <script type="text/javascript">
@@ -85,12 +79,16 @@
             "section",
             {},
             rows.map(function ({id, highlighting: {word}}) {
-              return React.createElement("li", {key: `result-root-${id}`, className: "badge badge-pill badge-light", dangerouslySetInnerHTML: {__html: word}})
+              return React.createElement("li", {key: `result-root-${id}`, className: "badge badge-pill badge-light", dangerouslySetInnerHTML: {__html: word}, id})
             })
           )
         };
 
-        return null;
+        return React.createElement(
+          "section",
+          {className: "alert alert-warning mb-0"},
+          "Searching for root words..."
+        );
       }
 
       function Result ({id, score}) {
@@ -131,7 +129,7 @@
         if (documentLoaded) {
           return React.createElement(
             "section",
-            {className: "list-group-item"},
+            {className: "list-group-item", id, score, documentLoaded},
             [
               React.createElement(ResultHeader, {key: "result-header", word, documentLoaded})
               ,
@@ -220,11 +218,15 @@
             [
               React.createElement(
                 "section",
-                {key: "search-information", className: "p-1"},
-                `Searching for ${query}, we have found ${total_rows} results...`
+                {key: "search-message", className: "p-1"},
+                [
+                  "Searching for ",
+                  React.createElement("em", {key: "search-message-query"}, query),
+                  ` we have found ${total_rows} results.`
+                ]
               ),
               React.createElement(Search, {key: "search", query, setQuery}),
-              React.createElement(Results, {key: "results", total_rows, rows, offset})
+              React.createElement(Results, {key: "results", total_rows, rows, offset}),
             ]
           );
         };
@@ -234,8 +236,8 @@
             React.Fragment,
             {},
             [
+              React.createElement("section", {key: "loading-message", className: "alert alert-light mb-0"}, "Searching... (first time will take a while)"),
               React.createElement(Search, {key: "search", query, setQuery}),
-              React.createElement("p", {key: "loading-message", className: "p-1"}, "Loading...")
             ]
           );
         };
@@ -244,13 +246,19 @@
           React.Fragment,
           {},
           [
-            React.createElement(Search, {key: "search", query, setQuery}),,
-            React.createElement("p", {key: "waiting-message", className: "p-1"}, "Waiting for search.")
+            React.createElement("section", {key: "waiting-message", className: "alert alert-light mb-0"}, "Type below to search definitions."),
+            React.createElement(Search, {key: "search", query, setQuery}),
           ]
         );
       };
 
-      ReactDOM.render(React.createElement(Application, {}), document.querySelector("main"))
+      REPLICATION
+        .on('change', function ({docs_written}) {
+          ReactDOM.render(React.createElement("section", {className: "alert alert-light mb-0"}, `Importing ${docs_written} words...`), document.querySelector("main"))
+        })
+        .on('paused', function () {
+          ReactDOM.render(React.createElement(Application, {}), document.querySelector("main"))
+        });
     </script>
   </body>
 </html>
