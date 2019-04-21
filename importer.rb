@@ -1,12 +1,11 @@
-require("concurrent-ruby")
 require("pry")
 require("pry-remote")
 require("pry-doc")
 require("ox")
 require("htmlentities")
-require("securerandom")
 require("uri")
 require("net/http")
+require("base64")
 
 DECODE = HTMLEntities.new.method(:decode)
 IGNORED = [
@@ -62,9 +61,12 @@ end.reduce({}) do |hash, (key, list)|
     entries.map(&:nodes).reduce({}) do |hash, (word_node, *extra)|
       next(hash) if word_node.text.nil?
       hash.merge(
+        "_id" => Base64.urlsafe_encode64(DECODE.call(word_node.text.strip)),
         "word" => DECODE.call(word_node.text.strip),
         "definitions" => {
-          "unknown" => DECODE.call(extra.map(&:text).compact.map(&:strip).join(" "))
+          "unknown" => [
+            DECODE.call(extra.map(&:text).compact.map(&:strip).join(" "))
+          ]
         },
         "examples" => [],
         "etymologies" => [],
@@ -96,3 +98,27 @@ DATABASE.each do |record|
   request.body = record.to_json
   puts http.request(request)
 end
+
+# DATABASE.each do |record|
+#   puts "Finding dictionary entry..."
+#   url = URI("http://35.224.124.140:5984/dictionary/#{record.fetch("_id")}")
+#   http = Net::HTTP.new(url.host, url.port)
+#   request = Net::HTTP::Get.new(url)
+#   request["accept"] = "application/json"
+#
+#   puts response = http.request(request)
+#   document = JSON.parse(response.body)
+#
+#   revision = document.fetch("_rev")
+#
+#   puts "Updating dictionary entry..."
+#
+#   url = URI("http://35.224.124.140:5984/dictionary/#{record.fetch("_id")}")
+#   http = Net::HTTP.new(url.host, url.port)
+#   request = Net::HTTP::Put.new(url)
+#   request["accept"] = "application/json"
+#   request["content-type"] = "application/json"
+#   request.body = JSON.dump(record.merge({"_rev" => revision}))
+#
+#   puts http.request(request)
+# end
