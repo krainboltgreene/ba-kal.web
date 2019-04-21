@@ -89,36 +89,39 @@ request["accept"] = "application/json"
 request["content-type"] = "application/json"
 puts http.request(request)
 
-puts "Importing into dictionary..."
 DATABASE.each do |record|
-  puts "Writing to dictionary..."
-  request = Net::HTTP::Post.new(url)
+  puts "Finding dictionary entry..."
+  url = URI("http://35.224.124.140:5984/dictionary/#{record.fetch("_id")}")
+  http = Net::HTTP.new(url.host, url.port)
+  request = Net::HTTP::Get.new(url)
   request["accept"] = "application/json"
-  request["content-type"] = "application/json"
-  request.body = record.to_json
-  puts http.request(request)
-end
 
-# DATABASE.each do |record|
-#   puts "Finding dictionary entry..."
-#   url = URI("http://35.224.124.140:5984/dictionary/#{record.fetch("_id")}")
-#   http = Net::HTTP.new(url.host, url.port)
-#   request = Net::HTTP::Get.new(url)
-#   request["accept"] = "application/json"
-#
-#   puts response = http.request(request)
-#   document = JSON.parse(response.body)
-#
-#   revision = document.fetch("_rev")
-#
-#   puts "Updating dictionary entry..."
-#
-#   url = URI("http://35.224.124.140:5984/dictionary/#{record.fetch("_id")}")
-#   http = Net::HTTP.new(url.host, url.port)
-#   request = Net::HTTP::Put.new(url)
-#   request["accept"] = "application/json"
-#   request["content-type"] = "application/json"
-#   request.body = JSON.dump(record.merge({"_rev" => revision}))
-#
-#   puts http.request(request)
-# end
+  puts response = http.request(request)
+
+  if response.kind_of?(Net:HTTPSuccess)
+    document = JSON.parse(response.body)
+
+    revision = document.fetch("_rev")
+
+    puts "Updating dictionary entry..."
+
+    url = URI("http://35.224.124.140:5984/dictionary/#{record.fetch("_id")}")
+    http = Net::HTTP.new(url.host, url.port)
+    request = Net::HTTP::Put.new(url)
+    request["accept"] = "application/json"
+    request["content-type"] = "application/json"
+    request.body = JSON.dump(record.merge({"_rev" => revision}))
+
+    puts http.request(request)
+  else
+    puts "Importing into dictionary..."
+    DATABASE.each do |record|
+      puts "Writing to dictionary..."
+      request = Net::HTTP::Post.new(url)
+      request["accept"] = "application/json"
+      request["content-type"] = "application/json"
+      request.body = record.to_json
+      puts http.request(request)
+    end
+  end
+end
