@@ -36,34 +36,47 @@
 
     <script type="text/javascript">
       function ResultHeader ({word, documentLoaded}) {
-        return React.createElement(
-          "header",
-          {className: "d-flex w-100 justify-content-between"},
-          [
-            React.createElement(
-              "h5",
-              {key: "result-header-word", className: "mb-1"},
-              word
-            ),
-            React.createElement(
-              "small",
-              {key: "result-header-loaded", className: "text-muted"},
-              `Last fetched ${moment(documentLoaded).fromNow()}`
-            )
-          ]
-        )
+        return
       }
 
-      function ResultFooter ({id, score}) {
+      function ResultAction ({setMode, mode}) {
+        if (mode == "editing") {
+          return React.createElement(
+            "button",
+            {type: "button", className: "btn btn-primary  btn-sm", onClick: () => setMode("saving")},
+            "save"
+          );
+        };
+
+        if (mode == "saving") {
+          return React.createElement(
+            "small",
+            {className: "text-info"},
+            "loading"
+          );
+        };
+
+        if (mode == "errored") {
+          return React.createElement(
+            "small",
+            {className: "text-danger"},
+            "error"
+          );
+        };
+
+        return React.createElement(
+          "button",
+          {type: "button", className: "btn btn-outline-dark  btn-sm", onClick: () => setMode("editing")},
+          "edit"
+        );
+      }
+
+      function ResultFooter ({id, score, setMode, mode}) {
         return React.createElement(
           "footer",
-          {className: "d-flex w-100 justify-content-between"},
+          {className: "mt-2 d-flex w-100 justify-content-between"},
           [
-            React.createElement(
-              "a",
-              {key: "result-footer-edit", className: "text-muted"},
-              "edit"
-            ),
+            React.createElement(ResultAction, {key: "result-footer-action", setMode, mode}),
             React.createElement(
               "small",
               {key: "result-footer-score", className: "text-muted"},
@@ -92,10 +105,20 @@
       }
 
       function Result ({id, score}) {
+        const [edit, setEdit] = React.useState({})
+        const [mode, setMode] = React.useState("viewing");
         const [documentLoaded, setDocumentLoaded] = React.useState(false);
         const [rootLoaded, setRootLoaded] = React.useState(false);
-        const [{word, definitions}, setDocumentResult] = React.useState({});
+        const [{word, definitions, examples, note}, setDocumentResult] = React.useState({});
         const [rootResults, setRootResults] = React.useState({});
+
+        React.useEffect(function () {
+          if (mode == "saving") {
+            DATABASE
+              .put(id, edit)
+              .then(() => setDocumentLoaded(new Date()))
+          }
+        }, [mode]);
 
         React.useEffect(function () {
           DATABASE
@@ -126,22 +149,74 @@
 
         }, [documentLoaded, word]);
 
+        if (documentLoaded && mode == "editing") {
+          return React.createElement(
+            "section",
+            {className: "list-group-item", id, score, documentloaded: documentLoaded},
+            [
+              React.createElement(
+                "form",
+                {key: "result-form", className: "mb-1"},
+                [
+                  React.createElement(
+                    "header",
+                    {key: "result-form-header", className: "form-group"},
+                    React.createElement(
+                      "input",
+                      {type: "text", className: "form-control form-control-lg", value: word, onChange: (event) => setEdit(R.mergeDeepRight(edit, {word: event.target.value}))}
+                    )
+                  ),
+                  ...Object.entries(definitions).flatMap(function ([type, typeDefinitions]) {
+                    return typeDefinitions.map(function (definition, index) {
+                      return React.createElement(
+                        "section",
+                        {key: `result-form-definition-${type}-${index}`, className: "form-group"},
+                        React.createElement(
+                          "textarea",
+                          {className: "form-control", value: definition, onChange: (event) => setEdit(R.mergeDeepRight(edit, {definitions: {[type]: [event.target.value]}}))}
+                        )
+                      )
+                    })
+                  })
+                ]
+              ),
+              React.createElement(ResultFooter, {key: "result-footer", id, score, setMode, mode}),
+            ]
+          );
+        }
+
         if (documentLoaded) {
           return React.createElement(
             "section",
-            {className: "list-group-item", id, score, documentLoaded},
+            {className: "list-group-item", id, score, documentloaded: documentLoaded},
             [
-              React.createElement(ResultHeader, {key: "result-header", word, documentloaded: documentLoaded})
-              ,
-              ...Object.entries(definitions).map(function ([key, value]) {
-                return React.createElement(
-                  "p",
-                  {key: `result-definition-${key}`, className: "mb-1", type: key},
-                  `[${key}] ${value}`
-                )
+              React.createElement(
+                "header",
+                {key: "result-header", className: "d-flex w-100 justify-content-between"},
+                [
+                  React.createElement(
+                    "h5",
+                    {key: "result-header-word", className: "mb-1"},
+                    word
+                  ),
+                  React.createElement(
+                    "small",
+                    {key: "result-header-loaded", className: "text-muted"},
+                    `Last fetched ${moment(documentLoaded).fromNow()}`
+                  )
+                ]
+              ),
+              ...Object.entries(definitions).flatMap(function ([type, typeDefinitions]) {
+                return typeDefinitions.map(function (definition, index) {
+                  return React.createElement(
+                    "p",
+                    {key: `result-definition-${type}-${index}`, className: "mb-1", type},
+                    `[${type}] ${definition}`
+                  )
+                })
               }),
               React.createElement(ResultRoot, {key: "result-root", rootLoaded, ...rootResults}),
-              React.createElement(ResultFooter, {key: "result-footer", id, score}),
+              React.createElement(ResultFooter, {key: "result-footer", id, score, setMode, mode}),
             ]
           );
         }
@@ -218,7 +293,7 @@
             [
               React.createElement(
                 "section",
-                {key: "search-message", className: "py-1"},
+                {key: "search-message", className: "alert alert-light mb-0"},
                 [
                   "Searching for ",
                   React.createElement("em", {key: "search-message-query"}, query),
