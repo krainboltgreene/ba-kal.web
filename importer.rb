@@ -7,6 +7,7 @@ require("uri")
 require("net/http")
 require("base64")
 
+ORIGIN = "http://35.224.124.140:5984"
 DECODE = HTMLEntities.new.method(:decode)
 IGNORED = [
   "Abbreviations",
@@ -80,48 +81,58 @@ end.reduce([]) do |previous, (group, records)|
   end]
 end.flatten
 
-url = URI("http://35.224.124.140:5984/dictionary")
-http = Net::HTTP.new(url.host, url.port)
 
 puts "Creating database..."
+url = URI("#{ORIGIN}/dictionary")
+http = Net::HTTP.new(url.host, url.port)
 request = Net::HTTP::Put.new(url)
 request["accept"] = "application/json"
+request["authorization"] = "Basic #{Base64.urlsafe_encode64("superuser:#{ENV["COUCHDB_SUPERUSER_PASSWORD"]}")}"
 request["content-type"] = "application/json"
 puts http.request(request)
 
-DATABASE.each do |record|
+def find(id)
   puts "Finding dictionary entry..."
-  url = URI("http://35.224.124.140:5984/dictionary/#{record.fetch("_id")}")
+  url = URI("#{ORIGIN}/dictionary/#{id}")
   http = Net::HTTP.new(url.host, url.port)
   request = Net::HTTP::Get.new(url)
   request["accept"] = "application/json"
+  request["authorization"] = "Basic #{Base64.urlsafe_encode64("superuser:#{ENV["COUCHDB_SUPERUSER_PASSWORD"]}")}"
 
-  puts response = http.request(request)
+  http.request(request)
+end
 
-  if response.kind_of?(Net:HTTPSuccess)
-    document = JSON.parse(response.body)
+def update(record, document)
+  puts "Updating dictionary entry..."
+  url = URI("#{ORIGIN}/dictionary/#{record.fetch("_id")}")
+  http = Net::HTTP.new(url.host, url.port)
+  request = Net::HTTP::Put.new(url)
+  request["accept"] = "application/json"
+  request["authorization"] = "Basic #{Base64.urlsafe_encode64("superuser:#{ENV["COUCHDB_SUPERUSER_PASSWORD"]}")}"
+  request["content-type"] = "application/json"
+  request.body = JSON.dump(record.merge({"_rev" => JSON.parse(document).fetch("_rev")}))
+  http.request(request)
+end
 
-    revision = document.fetch("_rev")
+def create(record)
+  puts "Writing to dictionary..."
+  url = URI("#{ORIGIN}/dictionary")
+  http = Net::HTTP.new(url.host, url.port)
+  request = Net::HTTP::Post.new(url)
+  request["accept"] = "application/json"
+  request["authorization"] = "Basic #{Base64.urlsafe_encode64("superuser:#{ENV["COUCHDB_SUPERUSER_PASSWORD"]}")}"
+  request["content-type"] = "application/json"
+  request.body = record.to_json
 
-    puts "Updating dictionary entry..."
+  puts http.request(request)
+end
 
-    url = URI("http://35.224.124.140:5984/dictionary/#{record.fetch("_id")}")
-    http = Net::HTTP.new(url.host, url.port)
-    request = Net::HTTP::Put.new(url)
-    request["accept"] = "application/json"
-    request["content-type"] = "application/json"
-    request.body = JSON.dump(record.merge({"_rev" => revision}))
+DATABASE.each do |record|
+  find_response = find(record.fetch("_id"))
 
-    puts http.request(request)
+  if find_response.kind_of?(Net::HTTPOK)
+    puts update(record, find_response.body)
   else
-    puts "Importing into dictionary..."
-    DATABASE.each do |record|
-      puts "Writing to dictionary..."
-      request = Net::HTTP::Post.new(url)
-      request["accept"] = "application/json"
-      request["content-type"] = "application/json"
-      request.body = record.to_json
-      puts http.request(request)
-    end
+    puts create(record)
   end
 end
