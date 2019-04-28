@@ -22,6 +22,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pouchdb/7.0.0/pouchdb.min.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/pouchdb-adapter-memory@7.0.0/lib/index.min.js"></script> -->
     <script src="https://cdn.jsdelivr.net/npm/pouchdb-quick-search@1.3.0/dist/pouchdb.quick-search.min.js" integrity="sha256-O2Fg8+71Ghtl5GSB/Z4ielEWXj46b163E3fcdFsc8lE=" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
@@ -29,15 +30,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"></script>
 
     <script type="text/javascript">
-      const DATABASE = new PouchDB("local");
+      const localPouchDB = new PouchDB("indexdb");
+      const remotePouchDB = new PouchDB("http://35.224.124.140:5984/dictionary");
+      const localToRemoteReplication = localPouchDB
+        .replicate
+        .from(remotePouchDB, {live: true, retry: true, heartbeat: true, batch_size: 250});
+      const LocalDatabaseContext = React.createContext(localPouchDB);
+      const ReplicationContext = React.createContext(localToRemoteReplication);
+      const ReplicationStateContext = React.createContext(undefined);
 
-      const REPLICATION = DATABASE.replicate.from("http://35.224.124.140:5984/dictionary", {live: true, retry: true, heartbeat: true});
-    </script>
-
-    <script type="text/javascript">
       function ResultHeader ({word, documentLoaded}) {
         return
-      }
+      };
 
       function ResultAction ({setMode, mode}) {
         if (mode == "editing") {
@@ -69,7 +73,7 @@
           {type: "button", className: "btn btn-outline-dark  btn-sm", onClick: () => setMode("editing")},
           "edit"
         );
-      }
+      };
 
       function ResultFooter ({id, score, setMode, mode}) {
         return React.createElement(
@@ -83,18 +87,18 @@
               score
             )
           ]
-        )
-      }
+        );
+      };
 
-      function ResultRoot ({rootLoaded, total_rows, rows}) {
+      function ResultRoot ({rootLoaded, resultCount, rows}) {
         if (rootLoaded) {
           return React.createElement(
             "section",
-            {totalrows: total_rows, rootloaded: rootLoaded},
+            {resultcount: resultCount, rootloaded: rootLoaded},
             rows.map(function ({id, highlighting: {word}}) {
               return React.createElement("li", {key: `result-root-${id}`, className: "badge badge-pill badge-light", dangerouslySetInnerHTML: {__html: word}, id})
             })
-          )
+          );
         };
 
         return React.createElement(
@@ -105,6 +109,7 @@
       }
 
       function Result ({id, score}) {
+        const localDatabaseContext = React.useContext(LocalDatabaseContext)
         const [edit, setEdit] = React.useState({})
         const [mode, setMode] = React.useState("viewing");
         const [documentLoaded, setDocumentLoaded] = React.useState(false);
@@ -114,14 +119,14 @@
 
         React.useEffect(function () {
           if (mode == "saving") {
-            DATABASE
+            localDatabaseContext
               .put(id, edit)
               .then(() => setDocumentLoaded(new Date()))
           }
         }, [mode]);
 
         React.useEffect(function () {
-          DATABASE
+          localDatabaseContext
             .get(id)
             .then(setDocumentResult)
             .then(() => setDocumentLoaded(new Date()));
@@ -133,7 +138,7 @@
               word
                 .split(" / ")
                 .flatMap((subsection) => subsection.split(" "))
-                .map((subword) => DATABASE.search({query: subword, fields: ["word"], highlighting: true, highlighting_pre: "<strong class=\"text-info\">"}))
+                .map((subword) => localDatabaseContext.search({query: subword, fields: ["word"], highlighting: true, highlighting_pre: "<strong class=\"text-info\">"}))
             )
               .then(
                 (results) =>
@@ -224,15 +229,21 @@
         return null;
       };
 
-      function Results ({rows}) {
-        return React.createElement(
-          "section",
-          {key: "row-list", className: "list-group"},
-          rows.map(({id, score}) => React.createElement(Result, {key: id, id, score}))
-        );
+      function Results ({rows, resultCount, offset}) {
+        if (rows) {
+          return React.createElement(
+            "section",
+            {key: "row-list", className: "list-group"},
+            rows.map(({id, score}) => React.createElement(Result, {key: id, id, score}))
+          );
+        }
+
+        return null
       };
 
       function Search ({setQuery, query}) {
+        const {pending: pendingDocumentCount} = React.useContext(ReplicationStateContext);
+
         return React.createElement(
           "form",
           {key: "search-form", className: "py-1"},
@@ -254,7 +265,14 @@
                 ),
                 React.createElement(
                   "input",
-                  {key: "search-input", className: "form-control form-control-lg", type: "text", onChange: (event) => setQuery(event.target.value), value: query}
+                  {
+                    key: "search-input",
+                    className: "form-control form-control-lg",
+                    type: "text",
+                    disabled: pendingDocumentCount > 0,
+                    onChange: (event) => setQuery(event.target.value),
+                    value: query,
+                  }
                 )
               ]
             )
@@ -262,13 +280,83 @@
         )
       }
 
+      function Metadata ({documentCount, query, resultCount, rows}) {
+        const {start_time: replicationStateChangedAt, pending: pendingDocumentCount, last_seq} = React.useContext(ReplicationStateContext);
+
+        if (pendingDocumentCount > 0) {
+          return React.createElement(
+            "section",
+            {className: "alert alert-light mb-0"},
+            [
+              `Last replicated ${moment(replicationStateChangedAt).fromNow()}.`,
+              React.createElement("br"),
+              `Waiting to replicate ${pendingDocumentCount || 0} words, ${documentCount} words already stored.`,
+              React.createElement("br"),
+              "Replicating..."
+            ]
+          )
+        }
+
+        if (query && query.length > 1 && rows && rows.length > 0) {
+          return React.createElement(
+            "section",
+            {className: "alert alert-light mb-0"},
+            [
+              `Last replicated at ${moment(replicationStateChangedAt).fromNow()}.`,
+              React.createElement("br"),
+              `${documentCount} total words in dictionary.`,
+              React.createElement("br"),
+              `Searching for "${query}", we have found ${resultCount} matches.`,
+            ]
+          )
+        }
+
+        if (query && query.length > 1) {
+          return React.createElement(
+            "section",
+            {className: "alert alert-light mb-0"},
+            [
+              `Last replicated at ${moment(replicationStateChangedAt).fromNow()}.`,
+              React.createElement("br"),
+              `${documentCount} total words in dictionary.`,
+              React.createElement("br"),
+              `Searching for "${query}"... (first search is slow)`,
+            ]
+          )
+        }
+
+        return React.createElement(
+          "section",
+          {className: "alert alert-light mb-0"},
+          [
+            `Last replicated ${moment(replicationStateChangedAt).fromNow()}.`,
+            React.createElement("br"),
+            `${documentCount} total words in dictionary.`,
+            React.createElement("br"),
+            "Type above to start searching the dictionary.",
+          ]
+        )
+      }
+
       function Application () {
-        const [{total_rows, rows, offset}, setResults] = React.useState({});
-        const [query, setQuery] = React.useState(undefined)
+        const localDatabaseContext = React.useContext(LocalDatabaseContext);
+        const replicationContext = React.useContext(ReplicationContext);
+        const replicationStateContext = React.useContext(ReplicationStateContext);
+        const [documentCount, setDocumentCount] = React.useState(0);
+        const [replicationState, setReplicationState] = React.useState(replicationContext);
+        const [{total_rows: resultCount, rows, offset}, setResults] = React.useState({});
+        const [query, setQuery] = React.useState(undefined);
+
+        replicationContext.removeAllListeners("change")
+        replicationContext.on("change", setReplicationState)
+
+        React.useEffect(function () {
+          localDatabaseContext.info().then(({doc_count}) => setDocumentCount(doc_count));
+        }, [replicationState.last_seq]);
 
         React.useEffect(function () {
           if (query && query.length > 1) {
-            DATABASE
+            localDatabaseContext
               .search({
                 query,
                 fields: [
@@ -287,54 +375,21 @@
           }
         }, [query]);
 
-        if (rows) {
-          return React.createElement(
-            React.Fragment,
-            {},
-            [
-              React.createElement(
-                "section",
-                {key: "search-message", className: "alert alert-light mb-0"},
-                [
-                  "Searching for ",
-                  React.createElement("em", {key: "search-message-query"}, query),
-                  ` we have found ${total_rows} results.`
-                ]
-              ),
-              React.createElement(Search, {key: "search", query, setQuery}),
-              React.createElement(Results, {key: "results", total_rows, rows, offset}),
-            ]
-          );
-        };
-
-        if (query && query.length > 1) {
-          return React.createElement(
-            React.Fragment,
-            {},
-            [
-              React.createElement("section", {key: "loading-message", className: "alert alert-light mb-0"}, "Searching... (first time will take a while)"),
-              React.createElement(Search, {key: "search", query, setQuery}),
-            ]
-          );
-        };
-
         return React.createElement(
-          React.Fragment,
-          {},
+          ReplicationStateContext.Provider,
+          {value: replicationState},
           [
-            React.createElement("section", {key: "waiting-message", className: "alert alert-light mb-0"}, "Type below to search definitions."),
             React.createElement(Search, {key: "search", query, setQuery}),
+            React.createElement(Results, {key: "results", resultCount, rows, offset}),
+            React.createElement(Metadata, {key: "metadata", query, rows, documentCount, resultCount})
           ]
         );
       };
 
-      REPLICATION
-        .on('change', function ({docs_written}) {
-          ReactDOM.render(React.createElement("section", {className: "alert alert-light mb-0"}, `Importing ${docs_written} words...`), document.querySelector("main"))
-        })
-        .on('paused', function () {
-          ReactDOM.render(React.createElement(Application, {}), document.querySelector("main"))
-        });
+      ReactDOM.render(
+        React.createElement(Application),
+        document.querySelector("main")
+      )
     </script>
   </body>
 </html>
