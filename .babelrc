@@ -1,0 +1,11 @@
+{
+  "presets": [
+    "@babel/preset-env",
+    "@emotion/babel-preset-css-prop",
+    "@babel/preset-react"
+  ],
+  "plugins": [
+    ["module-resolver", {"alias": {"^@internal/(.+)$": "./@internal/\\1"}}],
+    "annotate-console-log"
+  ]
+}
