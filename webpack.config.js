@@ -24,7 +24,7 @@ module.exports = [
       "./client/index.js",
     ],
     target: "web",
-    devtool: NODE_ENV === "production" ? "source-map" : "eval-source-map",
+    devtool: NODE_ENV === "production" ? "source-map" : "inline-source-map",
     output: {
       path: path.resolve(__dirname, "tmp", "client"),
       chunkFilename: "[name].[chunkhash].js",
@@ -64,10 +64,7 @@ module.exports = [
       port: 9000,
     },
     plugins: compact([
-      new HtmlWebpackPlugin({
-        title: "Trunk",
-        template: "client/index.html",
-      }),
+      new HtmlWebpackPlugin({template: "client/index.html"}),
       new EnvironmentPlugin(["NODE_ENV", "BENCHMARK"]),
       new HashedModuleIdsPlugin(),
       NODE_ENV === "production" ? new CleanWebpackPlugin({verbose: true}) : null,

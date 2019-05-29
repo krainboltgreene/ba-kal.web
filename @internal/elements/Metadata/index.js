@@ -1,26 +1,62 @@
-export default function Metadata({
-  documentCount,
-  query,
-  resultCount,
-  rows
-}) {
-  const {
-    start_time: replicationStateChangedAt,
-    pending: pendingDocumentCount,
-    last_seq
-  } = React.useContext(ReplicationStateContext);
+import React from "react";
+import moment from "moment";
 
+export default function Metadata ({documentCount, query, resultCount, rows}) {
   if (pendingDocumentCount > 0) {
-    return <section className="alert alert-light mb-0">{[`Last replicated ${moment(replicationStateChangedAt).fromNow()}.`, <br />, `Waiting to replicate ${pendingDocumentCount || 0} words, ${documentCount} words already stored.`, <br />, "Replicating..."]}</section>;
+    return <section className="alert alert-light mb-0">
+      <p>
+        Last replicated {moment(replicationStateChangedAt).fromNow()}...
+      </p>
+
+      <p>
+        Waiting to replicate {pendingDocumentCount}/{documentCount} documents.
+      </p>
+    </section>;
   }
 
   if (query && query.length > 1 && rows && rows.length > 0) {
-    return <section className="alert alert-light mb-0">{[`Last replicated at ${moment(replicationStateChangedAt).fromNow()}.`, <br />, `${documentCount} total words in dictionary.`, <br />, `Searching for "${query}", we have found ${resultCount} matches.`]}</section>;
+    return <section className="alert alert-light mb-0">
+      <p>
+        Last replicated {moment(replicationStateChangedAt).fromNow()}...
+      </p>
+
+      <p>
+        Waiting to replicate {pendingDocumentCount}/{documentCount} documents.
+      </p>
+
+      <p>
+        Searching for <em>{query}</em> we have found {resultCount} matches.
+      </p>
+    </section>;
   }
 
   if (query && query.length > 1) {
-    return <section className="alert alert-light mb-0">{[`Last replicated at ${moment(replicationStateChangedAt).fromNow()}.`, <br />, `${documentCount} total words in dictionary.`, <br />, `Searching for "${query}"... (first search is slow)`]}</section>;
+    return <section className="alert alert-light mb-0">
+      <p>
+        Last replicated {moment(replicationStateChangedAt).fromNow()}...
+      </p>
+
+      <p>
+        Waiting to replicate {pendingDocumentCount}/{documentCount} documents.
+      </p>
+
+      <p>
+        Searching for <em>{query}</em> ... (first search is slow).
+      </p>
+    </section>;
   }
 
-  return <section className="alert alert-light mb-0">{[`Last replicated ${moment(replicationStateChangedAt).fromNow()}.`, <br />, `${documentCount} total words in dictionary.`, <br />, "Type above to start searching the dictionary."]}</section>;
+  return <section className="alert alert-light mb-0">
+    <p>
+      Last replicated {moment(replicationStateChangedAt).fromNow()}...
+    </p>
+
+    <p>
+      Waiting to replicate {pendingDocumentCount}/{documentCount} documents.
+    </p>
+
+    <p>
+      Type above to start searching the dictionary.
+    </p>
+  </section>;
 }

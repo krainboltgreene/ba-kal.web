@@ -1,11 +1,10 @@
 import React from "react";
-import {Link as EvergreenLink} from "evergreen-ui";
 import ComponentLink from "react-router-component-link";
 import {defaultProps} from "recompose";
 import {startsWith} from "@unction/complete";
 import {isNil} from "@unction/complete";
 import {get} from "@unction/complete";
-import {omit} from "ramda";
+import {omit} from "@unction/complete";
 
 import view from "@internal/view";
 
@@ -25,25 +24,25 @@ export default view([
   defaultProps({
     kind: "normal",
   }),
-  function Link (props) {
-    const {children} = props;
-    const {href} = props;
-    const {kind} = props;
+  function Link (properties) {
+    const {children} = properties;
+    const {href} = properties;
+    const {kind} = properties;
     const color = get(kind)(kinds);
-    const remainingProps = omit(REMAINING_PROP_NAMES)(props);
+    const remainingProperties = omit(REMAINING_PROP_NAMES)(properties);
 
     if (isNil(href)) {
-      return <EvergreenLink data-element="Link" color={color} {...remainingProps}>
+      return <a data-element="Link" color={color} {...remainingProperties}>
         {children}
-      </EvergreenLink>;
+      </a>;
     }
 
     if (startsWith("https")(href) || startsWith("http")(href)) {
-      return <EvergreenLink data-element="Link" color={color} href={href} {...remainingProps}>
+      return <a data-element="Link" color={color} href={href} {...remainingProperties}>
         {children}
-      </EvergreenLink>;
+      </a>;
     }
 
-    return <ComponentLink data-element="Link" color={color} to={href} component={EvergreenLink} {...remainingProps}>{children}</ComponentLink>;
+    return <ComponentLink data-element="Link" color={color} to={href} component="a" {...remainingProperties}>{children}</ComponentLink>;
   },
 ]);

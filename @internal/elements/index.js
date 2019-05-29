@@ -1,4 +1,10 @@
 export {default as Link} from "./Link";
-export {default as PageHeader} from "./PageHeader";
-export {default as PageFooter} from "./PageFooter";
-export {default as Doorway} from "./Doorway";
+export {default as Navigation} from "./Navigation";
+export {default as Search} from "./Search";
+export {default as Results} from "./Results";
+export {default as Result} from "./Result";
+export {default as ResultRoot} from "./ResultRoot";
+export {default as ResultHeader} from "./ResultHeader";
+export {default as ResultFooter} from "./ResultFooter";
+export {default as ResultAction} from "./ResultAction";
+export {default as Metadata} from "./Metadata";

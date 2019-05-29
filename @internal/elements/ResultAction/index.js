@@ -1,9 +1,8 @@
-export default function ResultAction({
-  setMode,
-  mode
-}) {
+import React from "react";
+
+export default function ResultAction ({setMode, mode}) {
   if (mode === "editing") {
-    return <button type="button" className="btn btn-primary  btn-sm" onClick={() => setMode("saving")}>save</button>;
+    return <button type="button" className="btn btn-primary btn-sm" onClick={() => setMode("saving")}>save</button>;
   }
 
   if (mode === "saving") {
@@ -14,5 +13,5 @@ export default function ResultAction({
     return <small className="text-danger">error</small>;
   }
 
-  return <button type="button" className="btn btn-outline-dark  btn-sm" onClick={() => setMode("editing")}>edit</button>;
+  return <button type="button" className="btn btn-outline-dark btn-sm" onClick={() => setMode("editing")}>edit</button>;
 }
