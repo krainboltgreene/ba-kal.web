@@ -10,6 +10,6 @@ export default init({
     database,
   },
   redux: {
-    middlewares: process.env.NODE_ENV === "development" ? [logger] : [],
+    middlewares: process.env.NODE_ENV === "production" ? [] : [logger],
   },
 });

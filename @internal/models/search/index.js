@@ -3,16 +3,16 @@ export default {
   reducers: {},
   effects () {
     return {
-      async searchWord (query, {database}) {
-        await database.local.search({
+      word (query, {database}) {
+        return database.local.search({
           query,
           fields: [
             "word",
           ],
         });
       },
-      async searchWordAndDefinitions (query, {database}) {
-        await database.local.search({
+      wordOrDefintion (query, {database}) {
+        return database.local.search({
           query,
           fields: [
             "word",
