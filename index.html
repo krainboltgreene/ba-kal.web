@@ -31,7 +31,7 @@
 
     <script type="text/javascript">
       const localPouchDB = new PouchDB("indexdb");
-      const remotePouchDB = new PouchDB("http://35.224.124.140:5984/dictionary");
+      const remotePouchDB = new PouchDB("http://34.66.7.3:5984/dictionary");
       const localToRemoteReplication = localPouchDB
         .replicate
         .from(remotePouchDB, {live: true, retry: true, heartbeat: true, batch_size: 250});
