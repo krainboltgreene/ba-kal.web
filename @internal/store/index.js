@@ -5,7 +5,6 @@ import {search} from "@internal/models";
 import {database} from "@internal/models";
 import {replication} from "@internal/models";
 import {metadata} from "@internal/models";
-import {events} from "@internal/models";
 
 export default init({
   models: {
@@ -13,7 +12,6 @@ export default init({
     database,
     replication,
     metadata,
-    events,
   },
   redux: {
     middlewares: process.env.NODE_ENV === "production" ? [] : [createLogger({collapsed: true, duration: true})],
