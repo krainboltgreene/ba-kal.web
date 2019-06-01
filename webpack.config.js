@@ -1,3 +1,4 @@
+// eslint-disable no-undef
 const path = require("path");
 const {HashedModuleIdsPlugin} = require("webpack");
 const {EnvironmentPlugin} = require("webpack");
@@ -35,12 +36,12 @@ module.exports = [
       splitChunks: {
         cacheGroups: {
           internal: {
-            test: /[\\/]@internal[\\/]/,
+            test: /[\\/]@internal[\\/]/u,
             name: "internal",
             chunks: "initial",
           },
           commons: {
-            test: /[\\/]node_modules[\\/]/,
+            test: /[\\/]node_modules[\\/]/u,
             name: "vendor",
             chunks: "all",
           },
@@ -50,8 +51,8 @@ module.exports = [
     module: {
       rules: [
         {
-          test: /index\.js$/,
-          exclude: /node_modules/,
+          test: /index\.js$/u,
+          exclude: /node_modules/u,
           use: {
             loader: "babel-loader",
           },
@@ -65,7 +66,13 @@ module.exports = [
     },
     plugins: compact([
       new HtmlWebpackPlugin({template: "client/index.html"}),
-      new EnvironmentPlugin(["NODE_ENV", "BENCHMARK"]),
+      new EnvironmentPlugin([
+        "NODE_ENV",
+        "BENCHMARK",
+        "COUCHDB_USERNAME",
+        "COUCHDB_PASSWORD",
+        "COUCHDB_URI",
+      ]),
       new HashedModuleIdsPlugin(),
       NODE_ENV === "production" ? new CleanWebpackPlugin({verbose: true}) : null,
       BENCHMARK ? new WebpackVisualizerPlugin() : null,
@@ -80,7 +87,7 @@ module.exports = [
         to: path.resolve(__dirname, "tmp", "client", ...to),
       }])),
       NODE_ENV === "production" ? new CompressionWebpackPlugin({
-        test: /\.(js|css|txt|xml|json|png|svg|jpg|gif|woff|woff2|eot|ttf|otf)$/i,
+        test: /\.(?:js|css|txt|xml|json|png|svg|jpg|gif|woff|woff2|eot|ttf|otf)$/iu,
       }) : null,
       new AssetsWebpackPlugin({
         path: path.join(__dirname, "tmp", "client"),

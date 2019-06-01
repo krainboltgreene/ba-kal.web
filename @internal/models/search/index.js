@@ -1,18 +1,38 @@
 export default {
-  state: {},
-  reducers: {},
-  effects () {
+  state: {
+    active: false,
+  },
+  reducers: {
+    toggle (currentState) {
+      return {...currentState, active: !currentState.active};
+    },
+    update (currentState, payload) {
+      return {...currentState, ...payload};
+    },
+  },
+  effects (dispatch) {
     return {
-      word (query, {database}) {
-        return database.local.search({
+      async word (query, {database}) {
+        dispatch.search.toggle();
+        dispatch.search.update({query});
+
+        const results = await database.local.search({
           query,
           fields: [
             "word",
           ],
         });
+
+        dispatch.search.toggle();
+        dispatch.search.update({count: results.total_rows});
+
+        return results;
       },
-      wordOrDefintion (query, {database}) {
-        return database.local.search({
+      async wordOrDefinition (query, {database}) {
+        dispatch.search.toggle();
+        dispatch.search.update({query});
+
+        const results = await database.local.search({
           query,
           fields: [
             "word",
@@ -24,6 +44,11 @@ export default {
             "definitions.vi",
           ],
         });
+
+        dispatch.search.update({count: results.total_rows});
+        dispatch.search.toggle();
+
+        return results;
       },
     };
   },
