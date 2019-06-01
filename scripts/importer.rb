@@ -7,7 +7,7 @@ require("uri")
 require("net/http")
 require("base64")
 
-ORIGIN = "http://35.224.124.140:5984"
+ORIGIN = "http://34.66.7.3:5984"
 DECODE = HTMLEntities.new.method(:decode)
 IGNORED = [
   "Abbreviations",
@@ -87,7 +87,7 @@ url = URI("#{ORIGIN}/dictionary")
 http = Net::HTTP.new(url.host, url.port)
 request = Net::HTTP::Put.new(url)
 request["accept"] = "application/json"
-request["authorization"] = "Basic #{Base64.urlsafe_encode64("superuser:#{ENV["COUCHDB_SUPERUSER_PASSWORD"]}")}"
+request["authorization"] = "Basic #{Base64.urlsafe_encode64("administrator:#{ENV["COUCHDB_SUPERUSER_PASSWORD"]}")}"
 request["content-type"] = "application/json"
 puts http.request(request)
 
@@ -97,7 +97,7 @@ def find(id)
   http = Net::HTTP.new(url.host, url.port)
   request = Net::HTTP::Get.new(url)
   request["accept"] = "application/json"
-  request["authorization"] = "Basic #{Base64.urlsafe_encode64("superuser:#{ENV["COUCHDB_SUPERUSER_PASSWORD"]}")}"
+  request["authorization"] = "Basic #{Base64.urlsafe_encode64("administrator:#{ENV["COUCHDB_SUPERUSER_PASSWORD"]}")}"
 
   http.request(request)
 end
@@ -108,7 +108,7 @@ def update(record, document)
   http = Net::HTTP.new(url.host, url.port)
   request = Net::HTTP::Put.new(url)
   request["accept"] = "application/json"
-  request["authorization"] = "Basic #{Base64.urlsafe_encode64("superuser:#{ENV["COUCHDB_SUPERUSER_PASSWORD"]}")}"
+  request["authorization"] = "Basic #{Base64.urlsafe_encode64("administrator:#{ENV["COUCHDB_SUPERUSER_PASSWORD"]}")}"
   request["content-type"] = "application/json"
   request.body = JSON.dump(record.merge({"_rev" => JSON.parse(document).fetch("_rev")}))
   http.request(request)
@@ -120,7 +120,7 @@ def create(record)
   http = Net::HTTP.new(url.host, url.port)
   request = Net::HTTP::Post.new(url)
   request["accept"] = "application/json"
-  request["authorization"] = "Basic #{Base64.urlsafe_encode64("superuser:#{ENV["COUCHDB_SUPERUSER_PASSWORD"]}")}"
+  request["authorization"] = "Basic #{Base64.urlsafe_encode64("administrator:#{ENV["COUCHDB_SUPERUSER_PASSWORD"]}")}"
   request["content-type"] = "application/json"
   request.body = record.to_json
 
