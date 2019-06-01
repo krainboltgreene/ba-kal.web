@@ -1,6 +1,7 @@
 // eslint-disable no-undef
 const path = require("path");
 const {HashedModuleIdsPlugin} = require("webpack");
+const {IgnorePlugin} = require("webpack");
 const {EnvironmentPlugin} = require("webpack");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const CompressionWebpackPlugin = require("compression-webpack-plugin");
@@ -75,9 +76,7 @@ module.exports = [
       ]),
       new HashedModuleIdsPlugin(),
       NODE_ENV === "production" ? new CleanWebpackPlugin({verbose: true}) : null,
-      BENCHMARK ? new WebpackVisualizerPlugin() : null,
-      BENCHMARK ? new FriendlyErrorsWebpackPlugin() : null,
-      BENCHMARK ? new BundleAnalyzerPlugin({analyzerMode: "static"}) : null,
+      NODE_ENV === "production" ? new IgnorePlugin(/^\.\/locale$/u, /moment$/u) : null,
       new CopyWebpackPlugin([{
         from: path.resolve(__dirname, "assets"),
         to: path.resolve(__dirname, "tmp", "client"),
@@ -93,6 +92,9 @@ module.exports = [
         path: path.join(__dirname, "tmp", "client"),
         integrity: true,
       }),
+      BENCHMARK ? new WebpackVisualizerPlugin() : null,
+      BENCHMARK ? new FriendlyErrorsWebpackPlugin() : null,
+      BENCHMARK ? new BundleAnalyzerPlugin({analyzerMode: "static"}) : null,
     ]),
   },
 ];
