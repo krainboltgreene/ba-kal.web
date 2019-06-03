@@ -8,8 +8,6 @@ const CompressionWebpackPlugin = require("compression-webpack-plugin");
 const AssetsWebpackPlugin = require("assets-webpack-plugin");
 const CleanWebpackPlugin = require("clean-webpack-plugin");
 const {BundleAnalyzerPlugin} = require("webpack-bundle-analyzer");
-const FriendlyErrorsWebpackPlugin = require("friendly-errors-webpack-plugin");
-const WebpackVisualizerPlugin = require("webpack-visualizer-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const {compact} = require("@unction/complete");
 
@@ -29,22 +27,74 @@ module.exports = [
     devtool: NODE_ENV === "production" ? "source-map" : "inline-source-map",
     output: {
       path: path.resolve(__dirname, "tmp", "client"),
-      chunkFilename: "[name].[chunkhash].js",
       filename: "[name].[chunkhash].js",
     },
     optimization: {
       runtimeChunk: "single",
       splitChunks: {
+        minSize: 0,
+        maxAsyncRequests: Infinity,
+        maxInitialRequests: Infinity,
         cacheGroups: {
           internal: {
-            test: /[\\/]@internal[\\/]/u,
-            name: "internal",
+            test: /@internal[\\/]/u,
             chunks: "initial",
+            priority: -30,
           },
-          commons: {
+          unction: {
+            test: /[\\/]node_modules[\\/]@unction/u,
+            chunks: "initial",
+            priority: -20,
+          },
+          ramda: {
+            test: /[\\/]node_modules[\\/]ramda/u,
+            chunks: "initial",
+            priority: -20,
+          },
+          moment: {
+            test: /[\\/]node_modules[\\/]moment/u,
+            chunks: "initial",
+            priority: -20,
+          },
+          most: {
+            test: /[\\/]node_modules[\\/]most/u,
+            chunks: "initial",
+            priority: -20,
+          },
+          elliptic: {
+            test: /[\\/]node_modules[\\/]elliptic/u,
+            chunks: "initial",
+            priority: -20,
+          },
+          bn: {
+            test: /[\\/]node_modules[\\/]bn/u,
+            chunks: "initial",
+            priority: -20,
+          },
+          redux: {
+            test: /[\\/]node_modules[\\/]redux/u,
+            chunks: "initial",
+            priority: -20,
+          },
+          react: {
+            test: /[\\/]node_modules[\\/]react(?:-dom|-router|-router-dom|-redux)?[\\/]/u,
+            chunks: "initial",
+            priority: -20,
+          },
+          babel: {
+            test: /[\\/]node_modules[\\/]@babel/u,
+            chunks: "initial",
+            priority: -20,
+          },
+          pouchdb: {
+            test: /[\\/]node_modules[\\/](pouchdb|lunr)/u,
+            chunks: "initial",
+            priority: -20,
+          },
+          vendors: {
             test: /[\\/]node_modules[\\/]/u,
-            name: "vendor",
-            chunks: "all",
+            chunks: "initial",
+            priority: -40,
           },
         },
       },
@@ -92,9 +142,7 @@ module.exports = [
         path: path.join(__dirname, "tmp", "client"),
         integrity: true,
       }),
-      BENCHMARK ? new WebpackVisualizerPlugin() : null,
-      BENCHMARK ? new FriendlyErrorsWebpackPlugin() : null,
-      BENCHMARK ? new BundleAnalyzerPlugin({analyzerMode: "static"}) : null,
+      BENCHMARK ? new BundleAnalyzerPlugin({analyzerMode: "static", openAnalyzer: false}) : null,
     ]),
   },
 ];
