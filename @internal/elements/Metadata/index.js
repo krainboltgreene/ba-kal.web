@@ -9,15 +9,15 @@ const HIDE_COUNT = 0;
 
 export default view([
   connect(createStructuredSelector({
-    pendingReplicationCount: dig(["replication", "pendingCount"]),
-    localDocumentCount: dig(["metadata", "local", "documentCount"]),
-    remoteDocumentCount: dig(["metadata", "remote", "documentCount"]),
-    lastQueriedAt: dig(["metadata", "local", "lastQueriedAt"]),
-    lastReplicationChangedAt: dig(["replication", "lastChangedAt"]),
-    lastReplicationPausedAt: dig(["replication", "lastPausedAt"]),
-    isSearching: dig(["search", "active"]),
-    resultCount: dig(["search", "count"]),
-    query: dig(["search", "query"]),
+    pendingReplicationCount: dig(["database", "replication", "pendingCount"]),
+    localDocumentCount: dig(["database", "local", "documentCount"]),
+    remoteDocumentCount: dig(["database", "remote", "documentCount"]),
+    lastQueriedAt: dig(["database", "local", "lastQueriedAt"]),
+    lastReplicationChangedAt: dig(["database", "replication", "lastChangedAt"]),
+    lastReplicationPausedAt: dig(["database", "replication", "lastPausedAt"]),
+    isSearching: dig(["database", "search", "active"]),
+    resultCount: dig(["database", "search", "count"]),
+    query: dig(["database", "search", "query"]),
   })),
   function Metadata (properties) {
     const {pendingReplicationCount} = properties;

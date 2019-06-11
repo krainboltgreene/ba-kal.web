@@ -1,11 +1,9 @@
 import React from "react";
-import {connect} from "react-redux";
 import view from "@internal/view";
 
 const MINIMUM_DOCUMENT_COUNT = 0;
 
 export default view([
-  connect(),
   function Search (properties) {
     const {pendingDocumentCount} = properties;
     const {setQuery} = properties;
@@ -23,7 +21,7 @@ export default view([
               <label className="input-group-text" htmlFor="search">Search</label>
             </section>
 
-            <input id="search" className="form-control form-control-lg" type="text" disabled={pendingDocumentCount > MINIMUM_DOCUMENT_COUNT} onChange={updateSearch} value={query} />
+            <input aria-label="search" id="search" className="form-control form-control-lg" type="text" disabled={pendingDocumentCount > MINIMUM_DOCUMENT_COUNT} onChange={updateSearch} value={query} autoComplete="false" />
           </section>
         </section>
       </section>
@@ -32,7 +30,7 @@ export default view([
         <section className="col">
           <section className="form-check">
             <label className="form-check-label" htmlFor="search_definitions">
-              <input id="search_definitions" className="form-check-input" type="checkbox" onChange={updateOptions("searchDefinitions")} checked={options.searchDefinitions} /> Search word &amp; definitions
+              <input aria-label="search type" id="search_definitions" className="form-check-input" type="checkbox" onChange={updateOptions("searchDefinitions")} checked={options.searchDefinitions} /> Search word &amp; definitions
             </label>
           </section>
         </section>

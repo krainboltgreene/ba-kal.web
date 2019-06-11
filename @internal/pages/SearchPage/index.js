@@ -2,11 +2,14 @@ import React from "react";
 import {useEffect} from "react";
 import {useState} from "react";
 import {connect} from "react-redux";
+import {createStructuredSelector} from "reselect";
+import {dig} from "@unction/complete";
+import {mapValues} from "@unction/complete";
 
 import view from "@internal/view";
 import {Page} from "@internal/ui";
 import {Search} from "@internal/elements";
-import {Results} from "@internal/elements";
+import {Result} from "@internal/elements";
 
 const MINIMUM_SEARCH_SIZE = 1;
 const DEFAULT_OPTIONS = {
@@ -16,34 +19,39 @@ const DEFAULT_OPTIONS = {
 const meetsMinimumForSearch = (query) => query && query.length > MINIMUM_SEARCH_SIZE;
 
 export default view([
-  connect(),
+  connect(createStructuredSelector({
+    lastReplicationPausedAt: dig(["database", "replication", "lastPausedAt"]),
+  })),
   function SearchPage (properties) {
     const {dispatch} = properties;
-    const [{total_rows: resultCount, rows, offset}, setResults] = useState({});
+    const {lastReplicationPausedAt} = properties;
+    const [{rows}, setResults] = useState({rows: []});
     const [query, setQuery] = useState();
     const [options, setOptions] = useState(DEFAULT_OPTIONS);
 
     useEffect(() => {
       if (meetsMinimumForSearch(query) && options.searchDefinitions) {
         const search = async () => {
-          setResults(await dispatch.search.wordOrDefinition(query));
+          setResults(await dispatch.database.searchWordOrDefinition(query));
         };
 
         search();
       } else if (meetsMinimumForSearch(query)) {
         const search = async () => {
-          setResults(await dispatch.search.word(query));
+          setResults(await dispatch.database.searchWord(query));
         };
 
         search();
       } else {
-        setResults({});
+        setResults({rows: []});
       }
-    }, [query, options, dispatch.search]);
+    }, [dispatch.database, options.searchDefinitions, query, lastReplicationPausedAt]);
 
     return <Page subtitle="Search the dictionary" hasHeader={false}>
       <Search key="search" query={query} setQuery={setQuery} options={options} setOptions={setOptions} />
-      <Results key="results" resultCount={resultCount} rows={rows} offset={offset} />
+      <section className="list-group">
+        {mapValues(({id, score, doc: result}) => <Result key={id} id={id} score={score} result={result} />)(rows)}
+      </section>
     </Page>;
   },
 ]);

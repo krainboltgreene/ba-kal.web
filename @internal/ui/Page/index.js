@@ -15,7 +15,7 @@ export default view([
     const dataComponent = get("data-component")(properties);
     const {match: {isExact, path, url}} = properties;
 
-    return <main data-component={dataComponent} data-match-exact={isExact} data-match-path={path} data-match-url={url}>
+    return <main className="container-fluid" data-component={dataComponent} data-match-exact={isExact} data-match-path={path} data-match-url={url}>
       <Navigation />
       {children}
       <Metadata />

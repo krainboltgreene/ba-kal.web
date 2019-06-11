@@ -1,11 +1,16 @@
 import PouchDB from "pouchdb";
 import pouchDBQuickSearch from "pouchdb-quick-search";
 import {mergeDeepRight} from "@unction/complete";
+import {mapValues} from "@unction/complete";
+import {get} from "@unction/complete";
 
 PouchDB.plugin(pouchDBQuickSearch);
 
 const INFO_INTERVAL = 15000;
 const DATABASE_CONFIGURATION = {
+  search: {
+    active: false,
+  },
   local: {
     auto_compaction: true,
   },
@@ -16,40 +21,152 @@ const DATABASE_CONFIGURATION = {
     },
   },
 };
+const REPLICATION_CONFIGURATION = {
+  live: true,
+  retry: true,
+  heartbeat: true,
+  batch_size: 250,
+};
 
 export default {
   state: {
-    remote: null,
-    local: null,
+    remote: {
+      documentCount: 0,
+    },
+    local: {
+      documentCount: 0,
+    },
+    replication: {
+      pendingCount: 0,
+      incoming: [],
+    },
   },
   reducers: {
-    store (currentState, [type, database]) {
-      return mergeDeepRight(currentState)({[type]: database});
+    storeClient (currentState, [type, client]) {
+      return mergeDeepRight(currentState)({[type]: {client}});
+    },
+    updateMetadata (currentState, [type, information]) {
+      return mergeDeepRight(currentState)({
+        [type]: {
+          documentCount: information.doc_count,
+          lastCheckedAt: new Date(),
+        },
+      });
+    },
+    toggleSearching (currentState) {
+      return mergeDeepRight(currentState)({search: {active: !currentState.active}});
+    },
+    updateSearch (currentState, payload) {
+      return mergeDeepRight(currentState)({search: payload});
+    },
+    startReplication (currentState, job) {
+      return mergeDeepRight(currentState)({replication: {job, lastStartedAt: new Date()}});
+    },
+    updateReplication (currentState, information) {
+      return mergeDeepRight(currentState)({
+        replication: {
+          lastChangedAt: new Date(),
+          replicatedCount: information.docs_written,
+          pendingCount: information.pending,
+          incoming: mapValues(get("_id"))(information.docs),
+        },
+      });
+    },
+    pauseReplication (currentState) {
+      return mergeDeepRight(currentState)({replication: {lastPausedAt: new Date(), incoming: []}});
+    },
+    resumeReplication (currentState) {
+      return mergeDeepRight(currentState)({replication: {lastStartedAt: new Date()}});
+    },
+    crashReplication (currentState) {
+      return currentState;
+    },
+    completeReplication (currentState) {
+      return currentState;
     },
   },
   effects (dispatch) {
     return {
       async initialize () {
         await dispatch.database.create(["local", "dictionary"]);
-        await dispatch.databaseInformation.query("local");
-        setInterval(() => dispatch.databaseInformation.query("local"), INFO_INTERVAL);
+        await dispatch.database.check("local");
+        setInterval(() => dispatch.database.check("local"), INFO_INTERVAL);
 
         await dispatch.database.create(["remote", process.env.COUCHDB_URI]);
-        await dispatch.databaseInformation.query("remote");
-        setInterval(() => dispatch.databaseInformation.query("remote"), INFO_INTERVAL);
+        await dispatch.database.check("remote");
+        setInterval(() => dispatch.database.check("remote"), INFO_INTERVAL);
 
-        return dispatch.replication.replicate({from: "remote", to: "local"});
+        return dispatch.database.replicate({from: "remote", to: "local"});
       },
       async create ([type, location]) {
-        return dispatch.database.store([type, await new PouchDB(location, DATABASE_CONFIGURATION[type])]);
+        return dispatch.database.storeClient([type, await new PouchDB(location, DATABASE_CONFIGURATION[type])]);
+      },
+      async check (type, {database}) {
+        return dispatch.database.updateMetadata([type, await database[type].client.info()]);
       },
       writeEntry (data, {database}) {
-        return database.remote.put(data);
+        return database.remote.client.put(data);
       },
       getEntry (id, {database}) {
-        return database.local.get(id);
+        return database.local.client.get(id);
       },
+      replicate ({from, to}, {database}) {
+        return dispatch.database.startReplication(
+          database[to].client.replicate.from(database[from].client, REPLICATION_CONFIGURATION)
+            // handle change
+            .on("change", dispatch.database.updateReplication)
+            // replication paused (e.g. replication up to date, user went offline)
+            .on("paused", dispatch.database.pauseReplication)
+            // replicate resumed (e.g. new changes replicating, user went back online)
+            .on("active", dispatch.database.resumeReplication)
+            // a document failed to replicate (e.g. due to permissions)
+            .on("denied", dispatch.database.crashReplication)
+            // handle complete
+            .on("complete", dispatch.database.completeReplication)
+            // handle error
+            .on("error", dispatch.database.crashReplication)
+        );
+      },
+      async searchWord (query, {database}) {
+        dispatch.database.toggleSearching();
+        dispatch.database.updateSearch({query});
 
+        const results = await database.local.client.search({
+          query,
+          include_docs: true,
+          fields: [
+            "word",
+          ],
+        });
+
+        dispatch.database.toggleSearching();
+        dispatch.database.updateSearch({count: results.total_rows});
+
+        return results;
+      },
+      async searchWordOrDefinition (query, {database}) {
+        dispatch.database.toggleSearching();
+        dispatch.database.updateSearch({query});
+
+        const results = await database.local.client.search({
+          query,
+          include_docs: true,
+          fields: [
+            "word",
+            "definitions.unknown",
+            "definitions.n",
+            "definitions.vt",
+            "definitions.vo",
+            "definitions.vs",
+            "definitions.vi",
+          ],
+        });
+
+        dispatch.database.updateSearch({count: results.total_rows});
+        dispatch.database.toggleSearching();
+
+        return results;
+      },
     };
   },
 };
