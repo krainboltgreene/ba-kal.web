@@ -5,6 +5,7 @@ require("ox")
 require("htmlentities")
 require("uri")
 require("net/http")
+require("securerandom")
 require("base64")
 
 ORIGIN = "http://34.66.7.3:5984"
@@ -62,12 +63,13 @@ end.reduce({}) do |hash, (key, list)|
     entries.map(&:nodes).reduce({}) do |hash, (word_node, *extra)|
       next(hash) if word_node.text.nil?
       hash.merge(
-        "_id" => Base64.urlsafe_encode64(DECODE.call(word_node.text.strip)),
+        "_id" => SecureRandom.uuid,
         "word" => DECODE.call(word_node.text.strip),
         "definitions" => {
-          "unknown" => [
-            DECODE.call(extra.map(&:text).compact.map(&:strip).join(" "))
-          ]
+          SecureRandom.uuid => {
+            type: "unknown",
+            detail: DECODE.call(extra.map(&:text).compact.map(&:strip).join(" "))
+          }
         },
         "examples" => [],
         "etymologies" => [],

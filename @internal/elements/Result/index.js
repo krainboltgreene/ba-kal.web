@@ -1,86 +1,80 @@
 import React from "react";
 import {useState} from "react";
 import {useEffect} from "react";
-import {mergeDeepRight} from "@unction/complete";
 import {connect} from "react-redux";
+import {mergeDeepRight} from "@unction/complete";
+import {isPopulated} from "@unction/complete";
+import {createStructuredSelector} from "reselect";
+import {dig} from "@unction/complete";
 
-import ResultHeader from "../ResultHeader";
-import ResultFooter from "../ResultFooter";
+import EditWord from "./EditWord";
+import EditDefinitions from "./EditDefinitions";
+import Word from "./Word";
+import Definitions from "./Definitions";
+import Metadata from "./Metadata";
 import view from "@internal/view";
 
 export default view([
-  connect(),
+  connect(createStructuredSelector({
+    replicatedIds: dig(["replication", "incoming"]),
+  })),
   function Result (properties) {
     const {dispatch} = properties;
     const {id} = properties;
     const {score} = properties;
-    const [edit, setEdit] = useState({});
+    const {replicatedIds} = properties;
+    const [payload, setPayload] = useState({});
     const [mode, setMode] = useState("viewing");
     const [entryLoaded, setEntryLoaded] = useState(false);
     const [result, setResult] = useState({});
-    const {word} = result;
-    const {definitions} = result;
+    const {word} = mode === "editing" ? payload : result;
+    const {definitions} = mode === "editing" ? payload : result;
 
     useEffect(() => {
       const set = async () => {
         if (mode === "saving") {
-          await dispatch.database.writeEntry([id, edit]);
+          await dispatch.database.writeEntry(payload);
 
           setEntryLoaded(new Date());
+
+          setMode("viewing");
         }
       };
 
       set();
-    }, [dispatch.database, edit, id, mode]);
+    }, [dispatch.database, mode, payload]);
 
     useEffect(() => {
       const get = async () => {
         const entry = await dispatch.database.getEntry(id);
 
         setResult(entry);
+        setPayload(entry);
 
         setEntryLoaded(new Date());
       };
 
-      get();
-    }, [dispatch.database, id, score]);
+      if (!isPopulated(result)) {
+        get();
+      } else if (replicatedIds.includes(id)) {
+        get();
+      }
+    }, [dispatch.database, id, replicatedIds, result]);
 
-    if (entryLoaded && mode === "editing") {
-      return <section className="list-group-item" id={id} score={score} definitionloaded={entryLoaded}>
-        <form key="result-form" className="mb-1">
-          <header key="result-form-header" className="form-group">
-            <input type="text" className="form-control form-control-lg" value={word} onChange={(event) => setEdit(mergeDeepRight(edit, {word: event.target.value}))} />
-          </header>
-          {
-            Object.entries(definitions).flatMap(([type, typeDefinitions]) => {
-              return typeDefinitions.map((definition) => {
-                return <section key={`result-form-definition-${type}-${definition}`} className="form-group">
-                  <textarea className="form-control" value={definition} onChange={(event) => setEdit(mergeDeepRight(edit, {definitions: {[type]: [event.target.value]}}))} />
-                </section>;
-              });
-            })
-          }
-        </form>
-        <ResultFooter key="result-footer" id={id} score={score} setMode={setMode} mode={mode} />
-      </section>;
+    if (!entryLoaded) {
+      return null;
     }
 
-    if (entryLoaded) {
-      return <section className="list-group-item" id={id} score={score} definitionloaded={entryLoaded}>
-        <ResultHeader entryLoaded={entryLoaded} word={word} />
-        {
-          Object.entries(definitions).flatMap(([type, typeDefinitions]) => {
-            return typeDefinitions.map((definition) => {
-              return <p key={`result-definition-${type}-${definition}`} className="mb-1" type={type}>
-                [{type}] ${definition}
-              </p>;
-            });
-          })
-        }
-        <ResultFooter key="result-footer" id={id} score={score} setMode={setMode} mode={mode} />
-      </section>;
-    }
+    const changeDefinitions = (value) => {
+      setPayload(mergeDeepRight(payload)({definitions: value}));
+    };
 
-    return null;
+    return <section className="list-group-item" id={id} score={score} definitionloaded={entryLoaded}>
+      {mode === "editing" && <EditWord word={word} setWord={(value) => setPayload({...payload, word: value})} />}
+      {mode === "viewing" && <Word entryLoaded={entryLoaded} word={word} />}
+      {mode === "editing" && <EditDefinitions changeDefinitions={changeDefinitions} definitions={definitions} />}
+      {mode === "viewing" && <Definitions definitions={definitions} />}
+      <Metadata key="result-footer" id={id} score={score} setMode={setMode} mode={mode} />
+    </section>;
   },
 ]);

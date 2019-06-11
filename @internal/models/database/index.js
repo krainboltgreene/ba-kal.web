@@ -4,7 +4,7 @@ import {mergeDeepRight} from "@unction/complete";
 
 PouchDB.plugin(pouchDBQuickSearch);
 
-const INFO_INTERVAL = 5000;
+const INFO_INTERVAL = 15000;
 const DATABASE_CONFIGURATION = {
   local: {
     auto_compaction: true,
@@ -43,8 +43,8 @@ export default {
       async create ([type, location]) {
         return dispatch.database.store([type, await new PouchDB(location, DATABASE_CONFIGURATION[type])]);
       },
-      writeEntry ([id, data], {database}) {
-        return database.local.put(id, data);
+      writeEntry (data, {database}) {
+        return database.remote.put(data);
       },
       getEntry (id, {database}) {
         return database.local.get(id);

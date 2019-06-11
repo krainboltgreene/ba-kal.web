@@ -80,7 +80,7 @@
     "@babel/polyfill": "7.4.4",
     "@emotion/core": "10.0.10",
     "@rematch/core": "1.1.0",
-    "@unction/complete": "20.0.0",
+    "@unction/complete": "20.9.0",
     "core-js": "3.0.1",
     "keyboardjs": "2.5.1",
     "moment": "2.24.0",

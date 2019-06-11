@@ -37,6 +37,7 @@ export default view([
       {isSearching && <p>Searching for <em><u>{query}</u></em> ... (first search is slow).</p>}
       {query && !isSearching && <p>Searching for <em><u>{query}</u></em> we have found {resultCount} matches.</p>}
       {pendingReplicationCount > HIDE_COUNT && <p>Replicating {pendingReplicationCount} out of {documentCount} documents.</p>}
+      {pendingReplicationCount === HIDE_COUNT && <p>{documentCount} total documents.</p>}
       {lastReplicatedAt && <p>Last replicated {moment(lastReplicatedAt).fromNow()}.</p>}
     </section>;
   },

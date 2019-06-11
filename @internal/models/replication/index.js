@@ -1,3 +1,6 @@
+import {mapValues} from "@unction/complete";
+import {get} from "@unction/complete";
+
 const REPLICATION_CONFIGURATION = {
   live: true,
   retry: true,
@@ -8,16 +11,17 @@ const REPLICATION_CONFIGURATION = {
 export default {
   state: {
     pendingCount: 0,
+    incoming: [],
   },
   reducers: {
     start (currentState, job) {
       return {...currentState, job, lastStartedAt: new Date()};
     },
     update (currentState, information) {
-      return {...currentState, lastChangedAt: new Date(), pendingCount: information.pending};
+      return {...currentState, lastChangedAt: new Date(), replicatedCount: information.docs_written, pendingCount: information.pending, incoming: mapValues(get("_id"))(information.docs)};
     },
     pause (currentState) {
-      return {...currentState, lastPausedAt: new Date()};
+      return {...currentState, lastPausedAt: new Date(), incoming: []};
     },
     resume (currentState) {
       return {...currentState, lastStartedAt: new Date()};

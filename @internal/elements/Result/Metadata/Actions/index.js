@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function ResultAction ({setMode, mode}) {
+export default function Actions ({setMode, mode}) {
   if (mode === "editing") {
     return <button type="button" className="btn btn-primary btn-sm" onClick={() => setMode("saving")}>save</button>;
   }
