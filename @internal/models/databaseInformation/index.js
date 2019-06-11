@@ -22,7 +22,7 @@ export default {
   effects (dispatch) {
     return {
       async query (type, {database}) {
-        return dispatch.metadata.update([type, await database[type].info()]);
+        return dispatch.databaseInformation.update([type, await database[type].info()]);
       },
     };
   },

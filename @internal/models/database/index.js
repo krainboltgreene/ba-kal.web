@@ -31,12 +31,12 @@ export default {
     return {
       async initialize () {
         await dispatch.database.create(["local", "dictionary"]);
-        await dispatch.metadata.query("local");
-        setInterval(() => dispatch.metadata.query("local"), INFO_INTERVAL);
+        await dispatch.databaseInformation.query("local");
+        setInterval(() => dispatch.databaseInformation.query("local"), INFO_INTERVAL);
 
         await dispatch.database.create(["remote", process.env.COUCHDB_URI]);
-        await dispatch.metadata.query("remote");
-        setInterval(() => dispatch.metadata.query("remote"), INFO_INTERVAL);
+        await dispatch.databaseInformation.query("remote");
+        setInterval(() => dispatch.databaseInformation.query("remote"), INFO_INTERVAL);
 
         return dispatch.replication.replicate({from: "remote", to: "local"});
       },
