@@ -5,10 +5,11 @@ const {IgnorePlugin} = require("webpack");
 const {EnvironmentPlugin} = require("webpack");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const CompressionWebpackPlugin = require("compression-webpack-plugin");
-const AssetsWebpackPlugin = require("assets-webpack-plugin");
 const CleanWebpackPlugin = require("clean-webpack-plugin");
 const {BundleAnalyzerPlugin} = require("webpack-bundle-analyzer");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const WebpackAssetsManifest = require("webpack-assets-manifest");
+const WebpackSubresourceIntegrity = require("webpack-subresource-integrity");
 const {compact} = require("@unction/complete");
 
 const BENCHMARK = process.env.BENCHMARK === "enabled";
@@ -87,7 +88,7 @@ module.exports = [
             priority: -20,
           },
           pouchdb: {
-            test: /[\\/]node_modules[\\/](pouchdb|lunr)/u,
+            test: /[\\/]node_modules[\\/](?:pouchdb|lunr)/u,
             chunks: "initial",
             priority: -20,
           },
@@ -138,9 +139,13 @@ module.exports = [
       NODE_ENV === "production" ? new CompressionWebpackPlugin({
         test: /\.(?:js|css|txt|xml|json|png|svg|jpg|gif|woff|woff2|eot|ttf|otf)$/iu,
       }) : null,
-      new AssetsWebpackPlugin({
-        path: path.join(__dirname, "tmp", "client"),
+      new WebpackAssetsManifest({
+        output: "asset-integrity-manifest.json",
         integrity: true,
+      }),
+      new WebpackSubresourceIntegrity({
+        hashFuncNames: ["sha256", "sha384"],
+        enabled: true,
       }),
       BENCHMARK ? new BundleAnalyzerPlugin({analyzerMode: "static", openAnalyzer: false}) : null,
     ]),
