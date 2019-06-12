@@ -66,7 +66,7 @@ module.exports = {
     "dot-location": ["error", "property"],
     "dot-notation": "error",
     "emotion/import-from-emotion": "error",
-    "emotion/jsx-import": "error",
+    "emotion/jsx-import": "off", // I use babel
     "emotion/no-vanilla": "error",
     "emotion/styled-import": "error",
     "emotion/syntax-preference": "error",
