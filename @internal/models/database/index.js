@@ -1,16 +1,16 @@
 import PouchDB from "pouchdb";
 import pouchDBQuickSearch from "pouchdb-quick-search";
+import pouchDBAdapterMemory from "pouchdb-adapter-memory";
 import {mergeDeepRight} from "@unction/complete";
 import {mapValues} from "@unction/complete";
 import {get} from "@unction/complete";
+import visibility from "visibilityjs";
 
 PouchDB.plugin(pouchDBQuickSearch);
+PouchDB.plugin(pouchDBAdapterMemory);
 
 const INFO_INTERVAL = 15000;
 const DATABASE_CONFIGURATION = {
-  search: {
-    active: false,
-  },
   local: {
     auto_compaction: true,
   },
@@ -100,12 +100,30 @@ export default {
         await dispatch.database.check("remote");
         setInterval(() => dispatch.database.check("remote"), INFO_INTERVAL);
 
-        return dispatch.database.replicate({from: "remote", to: "local"});
+        dispatch.database.replicate({from: "remote", to: "local"});
+      },
+      async index (nothing, {database}) {
+        await database.local.client.search({
+          fields: ["words"],
+          build: true,
+        });
+        await database.local.client.search({
+          fields: ["definitions.detail"],
+          build: true,
+        });
+        await database.local.client.search({
+          fields: ["words", "definitions.detail"],
+          build: true,
+        });
       },
       async create ([type, location]) {
         return dispatch.database.storeClient([type, await new PouchDB(location, DATABASE_CONFIGURATION[type])]);
       },
       async check (type, {database}) {
+        if (visibility.hidden()) {
+          return null;
+        }
+
         return dispatch.database.updateMetadata([type, await database[type].client.info()]);
       },
       writeEntry (data, {database}) {
@@ -114,6 +132,9 @@ export default {
       getEntry (id, {database}) {
         return database.local.client.get(id);
       },
+      deleteEntry (id, {database}) {
+        return database.remote.client.delete(id);
+      },
       replicate ({from, to}, {database}) {
         return dispatch.database.startReplication(
           database[to].client.replicate.from(database[from].client, REPLICATION_CONFIGURATION)
@@ -121,12 +142,14 @@ export default {
             .on("change", dispatch.database.updateReplication)
             // replication paused (e.g. replication up to date, user went offline)
             .on("paused", dispatch.database.pauseReplication)
+            .on("paused", dispatch.database.index)
             // replicate resumed (e.g. new changes replicating, user went back online)
             .on("active", dispatch.database.resumeReplication)
             // a document failed to replicate (e.g. due to permissions)
             .on("denied", dispatch.database.crashReplication)
             // handle complete
             .on("complete", dispatch.database.completeReplication)
+            .on("complete", dispatch.database.index)
             // handle error
             .on("error", dispatch.database.crashReplication)
         );

@@ -13,3 +13,8 @@ gem "pry-remote", "~> 0.1.8"
 gem "ox", "~> 2.10"
 
 gem "htmlentities", "~> 4.3"
+
+gem "concurrent-ruby", "~> 1.1"
+
+
+gem "couchrest", "~> 2.0"
