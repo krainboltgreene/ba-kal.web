@@ -5,6 +5,7 @@ import {connect} from "react-redux";
 import {createStructuredSelector} from "reselect";
 import {dig} from "@unction/complete";
 import {mapValues} from "@unction/complete";
+import {compact} from "@unction/complete";
 
 import view from "@internal/view";
 import {Page} from "@internal/ui";
@@ -14,9 +15,8 @@ import {mediaqueries} from "@internal/typography";
 
 const MINIMUM_SEARCH_SIZE = 1;
 const DEFAULT_OPTIONS = {
-  searchDefinitions: false,
+  searchWords: true,
 };
-
 const meetsMinimumForSearch = (query) => query && query.length > MINIMUM_SEARCH_SIZE;
 const grid = mediaqueries({
   display: "grid",
@@ -42,22 +42,23 @@ export default view([
     const [options, setOptions] = useState(DEFAULT_OPTIONS);
 
     useEffect(() => {
-      if (meetsMinimumForSearch(query) && options.searchDefinitions) {
+      if (meetsMinimumForSearch(query)) {
         const search = async () => {
-          setResults(await dispatch.database.searchWordOrDefinition(query));
-        };
-
-        search();
-      } else if (meetsMinimumForSearch(query)) {
-        const search = async () => {
-          setResults(await dispatch.database.searchWord(query));
+          setResults(await dispatch.database.search([query, compact([
+            options.searchWords ? "word" : null,
+            options.searchEtymologies ? "etymologies" : null,
+            options.searchDefinitions ? "definitions.detail" : null,
+            options.searchNotes ? "note" : null,
+            options.searchExamples ? "examples" : null,
+          ])]));
         };
 
         search();
       } else {
         setResults({rows: []});
       }
-    }, [dispatch.database, options.searchDefinitions, query, lastReplicationPausedAt]);
+    }, [dispatch.database, options.searchDefinitions, options.searchEtymologies, options.searchNotes, options.searchWords, query, lastReplicationPausedAt, options.searchExamples]);
+
 
     return <Page subtitle="Search the dictionary" hasHeader={false}>
       <SearchBar query={query} setQuery={setQuery} options={options} setOptions={setOptions} />

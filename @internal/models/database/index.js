@@ -30,6 +30,10 @@ const REPLICATION_CONFIGURATION = {
 
 export default {
   state: {
+    search: {
+      active: false,
+      query: "",
+    },
     remote: {
       documentCount: 0,
     },
@@ -53,8 +57,8 @@ export default {
         },
       });
     },
-    toggleSearching (currentState) {
-      return mergeDeepRight(currentState)({search: {active: !currentState.active}});
+    isSearching (currentState, active) {
+      return mergeDeepRight(currentState)({search: {active}});
     },
     updateSearch (currentState, payload) {
       return mergeDeepRight(currentState)({search: payload});
@@ -127,43 +131,18 @@ export default {
             .on("error", dispatch.database.crashReplication)
         );
       },
-      async searchWord (query, {database}) {
-        dispatch.database.toggleSearching();
-        dispatch.database.updateSearch({query});
+      async search ([query, fields], {database}) {
+        dispatch.database.isSearching(true);
+        dispatch.database.updateSearch({query, fields});
 
         const results = await database.local.client.search({
           query,
           include_docs: true,
-          fields: [
-            "word",
-          ],
+          fields,
         });
 
-        dispatch.database.toggleSearching();
+        dispatch.database.isSearching(false);
         dispatch.database.updateSearch({count: results.total_rows});
-
-        return results;
-      },
-      async searchWordOrDefinition (query, {database}) {
-        dispatch.database.toggleSearching();
-        dispatch.database.updateSearch({query});
-
-        const results = await database.local.client.search({
-          query,
-          include_docs: true,
-          fields: [
-            "word",
-            "definitions.unknown",
-            "definitions.n",
-            "definitions.vt",
-            "definitions.vo",
-            "definitions.vs",
-            "definitions.vi",
-          ],
-        });
-
-        dispatch.database.updateSearch({count: results.total_rows});
-        dispatch.database.toggleSearching();
 
         return results;
       },
