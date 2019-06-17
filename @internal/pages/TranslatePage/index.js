@@ -8,7 +8,7 @@ import {mapValues} from "@unction/complete";
 
 import view from "@internal/view";
 import {Page} from "@internal/ui";
-import {Search} from "@internal/elements";
+import {SearchBar} from "@internal/elements";
 import {Result} from "@internal/elements";
 
 const MINIMUM_SEARCH_SIZE = 1;
@@ -42,7 +42,7 @@ export default view([
     }, [dispatch.database, options.searchDefinitions, query, lastReplicationPausedAt]);
 
     return <Page subtitle="Search the dictionary" hasHeader={false}>
-      <Search key="search" query={query} setQuery={setQuery} options={options} setOptions={setOptions} />
+      <SearchBar query={query} setQuery={setQuery} options={options} setOptions={setOptions} />
       <section className="list-group">
         {
           mapValues(({id, score, doc: result}) => <Result key={id} id={id} score={score} result={result} />)(rows)
