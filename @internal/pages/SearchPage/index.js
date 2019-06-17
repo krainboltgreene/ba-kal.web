@@ -10,6 +10,7 @@ import view from "@internal/view";
 import {Page} from "@internal/ui";
 import {SearchBar} from "@internal/elements";
 import {Result} from "@internal/elements";
+import {mediaqueries} from "@internal/typography";
 
 const MINIMUM_SEARCH_SIZE = 1;
 const DEFAULT_OPTIONS = {
@@ -17,6 +18,17 @@ const DEFAULT_OPTIONS = {
 };
 
 const meetsMinimumForSearch = (query) => query && query.length > MINIMUM_SEARCH_SIZE;
+const grid = mediaqueries({
+  display: "grid",
+  gridTemplateColumns: [
+    "repeat(auto-fill, minmax(250px, 1fr))",
+    "repeat(auto-fill, minmax(350px, 1fr))",
+    "repeat(auto-fill, minmax(450px, 1fr))",
+    "repeat(auto-fill, minmax(450px, 1fr))",
+    "repeat(auto-fill, minmax(650px, 1fr))",
+  ],
+  gridGap: ".5rem",
+});
 
 export default view([
   connect(createStructuredSelector({
@@ -48,8 +60,8 @@ export default view([
     }, [dispatch.database, options.searchDefinitions, query, lastReplicationPausedAt]);
 
     return <Page subtitle="Search the dictionary" hasHeader={false}>
-      <section className="list-group">
       <SearchBar query={query} setQuery={setQuery} options={options} setOptions={setOptions} />
+      <section className="card-deck" css={grid}>
         {mapValues(({id, score, doc: result}) => <Result key={id} id={id} score={score} result={result} />)(rows)}
       </section>
     </Page>;
