@@ -13,7 +13,7 @@ import {SearchBar} from "@internal/elements";
 import {Result} from "@internal/elements";
 import {mediaqueries} from "@internal/typography";
 
-const MINIMUM_SEARCH_SIZE = 1;
+const MINIMUM_SEARCH_SIZE = 0;
 const DEFAULT_OPTIONS = {
   searchWords: true,
 };
