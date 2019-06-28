@@ -8,6 +8,7 @@ const VALID_TYPES = new Map([
   ["vt", "Transitive Verb"],
   ["vs", "Stative Verb"],
   ["vo", "Verb Object"],
+  ["pf", "Phonetic Form"],
   ["prep", "Preposition"],
   ["adv", "Adverb"],
 ]);
