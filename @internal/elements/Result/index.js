@@ -9,6 +9,8 @@ import EditWord from "./EditWord";
 import EditDefinitions from "./EditDefinitions";
 import EditEtymologies from "./EditEtymologies";
 import Etymologies from "./Etymologies";
+import EditExamples from "./EditExamples";
+import Examples from "./Examples";
 import EditNote from "./EditNote";
 import Note from "./Note";
 import Word from "./Word";
@@ -34,6 +36,7 @@ export default view([
     const [mode, setMode] = useState("viewing");
     const {word} = mode === "editing" ? payload : result;
     const {etymologies} = mode === "editing" ? payload : result;
+    const {examples} = mode === "editing" ? payload : result;
     const {definitions} = mode === "editing" ? payload : result;
     const {note} = mode === "editing" ? payload : result;
     const setSaving = () => setMode("saving");
@@ -71,6 +74,7 @@ export default view([
     };
     const changeWord = (value) => setPayload({...payload, word: value});
     const changeEtymologies = (value) => setPayload({...payload, etymologies: value});
+    const changeExamples = (value) => setPayload({...payload, examples: value});
     const changeNote = (value) => setPayload({...payload, note: value});
 
     return <section className="card" css={{opacity: isSearching ? FADED : VISIBLE}} id={id} score={score}>
@@ -80,6 +84,8 @@ export default view([
       {mode === "viewing" && <Definitions definitions={definitions} />}
       {mode === "editing" && <EditEtymologies etymologies={etymologies} changeEtymologies={changeEtymologies} />}
       {mode === "viewing" && <Etymologies etymologies={etymologies} />}
+      {mode === "editing" && <EditExamples examples={examples} changeExamples={changeExamples} />}
+      {mode === "viewing" && <Examples examples={examples} />}
       {mode === "editing" && <EditNote note={note} changeNote={changeNote} />}
       {mode === "viewing" && <Note note={note} />}
       <Metadata id={id} score={score} mode={mode} />
