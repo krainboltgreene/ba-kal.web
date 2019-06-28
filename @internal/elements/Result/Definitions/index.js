@@ -19,7 +19,7 @@ export default function Definitions ({definitions}) {
       mapValues(({id, type, detail}) => {
         return <li className="list-group-item">
           <p key={`result-definition-${id}`} className="mb-1" type={type}>
-            <span className="badge badge-light">{VALID_TYPES.get(type)}</span> {detail}
+            <span className="badge badge-light">{VALID_TYPES.get(type)} [{type}]</span> {detail}
           </p>
         </li>;
       })(definitions)
