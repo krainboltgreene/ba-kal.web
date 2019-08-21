@@ -32,6 +32,7 @@ module.exports = [
       filename: "[name].[chunkhash].js",
     },
     optimization: {
+      minimize: NODE_ENV === "production",
       runtimeChunk: "single",
       splitChunks: {
         minSize: 0,
@@ -123,7 +124,18 @@ module.exports = [
       port: 9000,
     },
     plugins: compact([
-      new HtmlWebpackPlugin({template: "client/index.html"}),
+      new HtmlWebpackPlugin({
+        minify: {
+          removeComments: true,
+          collapseWhitespace: true,
+          removeRedundantAttributes: true,
+          useShortDoctype: true,
+          removeEmptyAttributes: true,
+          minifyJS: true,
+          minifyCSS: true,
+        },
+        template: "client/index.html",
+      }),
       new EnvironmentPlugin([
         "NODE_ENV",
         "BENCHMARK",
